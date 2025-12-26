@@ -5,7 +5,7 @@ import sys
 from dotenv import load_dotenv
 from ollama import Client, chat
 
-from sam_config import SAM_personality
+from sam_config import SAM_personality, chat_history_system_prompt
 from discord_functions.discord_message_helpers import session_chat_cache
 from tools.vision.gemma_vision import vision_image_cleanup
 from utility_scripts.system_logging import setup_logger
@@ -58,30 +58,6 @@ async def sam_message(message_author_name, message_author_nickname, message_cont
     cleaned = llm_response.replace("'", "\\'")
     return split_response(cleaned)
 
-
-chat_history_system_prompt = f"""
-Input:
-- You will receive ONE message in the format: [turn: (turn number)] Username (nickname): content
-- The turn number is to help keep the order of the messages.
-
-Input Example:
-[turn: 7] Bob (KingBobby): How are you feeling today?
-
-Behavior:
-- Reply to the content of the message. Use the username only if it improves clarity.
-- Do not invent server history, quotes, or prior messages you cannot see.
-- Do not impersonate other users.
-
-Output:
-- Respond with ONLY the message content.
-- Do NOT include turn numbers or your username.
-- If any of the above appear, the response is invalid.
-
-Output Example:
-How are you feeling today?
-
-- If your draft response contains any input formatting, rewrite it to remove all input style formatting before returning it.
-"""
 
 
 async def sam_converse(user_name, user_nickname, user_input):

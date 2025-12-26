@@ -24,17 +24,12 @@ config_dict = {
         "GMCD_CHANNEL_ID": os.getenv("GMCD_CHANNEL_ID"),
         "TEST_THREAD_ID": os.getenv("TEST_THREAD_ID")
     },
-    "THREADS_DENY": {
-        "DISCUSSION": os.getenv("GMCD_NOT_ALLOWED_THREAD_D"),
-        "NO_CONTEXT": os.getenv("GMCD_NOT_ALLOWED_THREAD_NC"),
-        "DANEEL": os.getenv("GMCD_DANEEL_STINKY")
-    },
     "BOTS": {
-        "SCUNGEONMASTER": os.getenv("BOT_ID_SCUNGE")
+        "SCUNGEONMASTER": os.getenv("BOT_ID_SCUNGE"),
+        "ARETE": os.getenv("BOT_ID_ARI")
     }
 }
 CONFIG = ns(config_dict)
-channels_blacklist = [int(v) for v in CONFIG.THREADS_DENY.__dict__.values()]
 bots_blacklist = [int(b) for b in CONFIG.BOTS.__dict__.values()]
 channels_whitelist = [int(t) for t in CONFIG.THREADS_ALLOW.__dict__.values()]
 
