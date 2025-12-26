@@ -51,24 +51,94 @@ def sam_create():
 # === Main Entry Point ===
 async def sam_message(message_author_name, message_author_nickname, message_content, image_file=None, message_attachments=None):
     if image_file is None:
-        # llm_response = await sam_converse(message_author_name, message_author_nickname, message_content)
-        llm_response = await sam_converse(message_content)
+        llm_response = await sam_converse(message_author_name, message_author_nickname, message_content)
     else:
-        # llm_response = await sam_converse_image(message_author_name, message_author_nickname, message_content, image_file ,message_attachments)
-        llm_response = await sam_converse(message_content)
+        llm_response = await sam_converse_image(message_author_name, message_author_nickname, message_content, image_file ,message_attachments)
 
     cleaned = llm_response.replace("'", "\\'")
     return split_response(cleaned)
 
 
-async def sam_converse(user_input):
+chat_history_system_prompt = f"""
+Input:
+- You will receive ONE message in the format: [turn: (turn number)] Username (nickname): content
+- The turn number is to help keep the order of the messages.
+
+Input Example:
+[turn: 7] Bob (KingBobby): How are you feeling today?
+
+Behavior:
+- Reply to the content of the message. Use the username only if it improves clarity.
+- Do not invent server history, quotes, or prior messages you cannot see.
+- Do not impersonate other users.
+
+Output:
+- Respond with ONLY the message content.
+- Do NOT include turn numbers or your username.
+- If any of the above appear, the response is invalid.
+
+Output Example:
+How are you feeling today?
+
+- If your draft response contains any input formatting, rewrite it to remove all input style formatting before returning it.
+"""
+
+
+async def sam_converse(user_name, user_nickname, user_input):
+    current_session_chat_cache = session_chat_cache()
+
+    chat_log = []
+    for message in current_session_chat_cache:
+        chat_log.append(message)
+
+    # Get everything except the last entry
+    chat_log_all_but_last = chat_log[:-1]
+    turn_number = len(chat_log_all_but_last) + 1
+
+    current_prompt = [{"role": "user", "content": f'[turn: {turn_number}] {user_name} ({user_nickname}): "{user_input}"'}]
+
+    full_prompt = (
+        [
+            {"role": "system", "content": SAM_personality},
+            {"role": "system", "content": chat_history_system_prompt}
+        ] +
+        chat_log_all_but_last +
+        current_prompt
+    )
+
     response = await asyncio.to_thread(
         chat,
         model=sam_model_name,
+        messages=full_prompt,
+        options={
+            "num_ctx": 8192,
+            'temperature': 0.5
+        }
+    )
+
+    # return the message to main script
+    return response.message.content
+
+
+async def sam_converse_image(user_name, user_nickname, user_input, image_file, message_attachments):
+    # Go one directory up
+    parent_dir = Path(__file__).resolve().parent
+    path = parent_dir / 'tools/vision/images_temp' / image_file
+
+    attachments = message_attachments[0]["attachments"]
+
+    # print(attachments)
+    # print(f'Analyzing image ({image_file_name})...')
+    logger.debug(f"Attachments: {attachments}")
+    logger.info(f'Analyzing image ({image_file})...')
+
+    response = await asyncio.to_thread(
+        chat,
+        model=sam_vision_model,
         messages=(
             [
                 {"role": "system", "content": SAM_personality},
-                {"role": "user", "content": user_input}
+                {"role": "user", "content": user_input, 'images': [path]}
             ]
         ),
         options={
@@ -76,4 +146,9 @@ async def sam_converse(user_input):
         }
     )
 
+    # clean up image
+    vision_image_cleanup(image_file)
+
+    # return the message to main script
     return response.message.content
+

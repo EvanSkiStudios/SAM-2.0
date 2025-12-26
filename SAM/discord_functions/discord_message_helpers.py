@@ -54,37 +54,54 @@ def should_ignore_message(client, message):
 
 
 # used for conversations
-colt_current_session_chat_cache = deque(maxlen=40)
+current_session_chat_cache = deque(maxlen=40)
+current_turn_number = 0
 
 
 def session_chat_cache():
-    global colt_current_session_chat_cache
-    return colt_current_session_chat_cache
+    global current_session_chat_cache
+    return current_session_chat_cache
 
 
 def clear_chat_cache():
-    global colt_current_session_chat_cache
-    colt_current_session_chat_cache.clear()
+    global current_session_chat_cache, current_turn_number
+    current_session_chat_cache.clear()
+    current_turn_number = 0
+
+
+def next_turn():
+    global current_turn_number
+    current_turn_number += 1
+    return current_turn_number
 
 
 async def message_history_cache(client, message):
-    global colt_current_session_chat_cache
+    global current_session_chat_cache
 
     def build_user_prompt(author, nick, content, reply_to=None):
         """Helper to format user messages (with optional reply)."""
         if reply_to == client.user.name:
             reply_to = None
 
+        turn = next_turn()
+
         if reply_to:
-            return {
-                "role": "user",
-                "content": f'{author} ({nick}): (Replying to: {reply_to}) "{content}"'
-            }
-        return {"role": "user", "content": f'{author} ({nick}): "{content}"'}
+            base = f'[turn: {turn}] {author} ({nick}): (Replying to: {reply_to}) "{content}"'
+        else:
+            base = f'[turn: {turn}] {author} ({nick}): "{content}"'
+
+        return {
+            "role": "user",
+            "content": base
+        }
 
     def build_assistant_prompt(content=""):
         """Helper to format assistant messages."""
-        return {"role": "assistant", "content": content}
+        turn = next_turn()
+        return {
+            "role": "assistant",
+            "content": f'[turn: {turn}] {content}'
+        }
 
     async def process_message(msg):
         """Process a single Discord message into prompts."""
@@ -126,18 +143,18 @@ async def message_history_cache(client, message):
         return prompts
 
     # First-time cache build
-    if not colt_current_session_chat_cache:
+    if not current_session_chat_cache:
         logger.debug("Session Cache Not Found -- Creating")
         channel = client.get_channel(message.channel.id)
         history_prompts = []
         async for past_message in channel.history(limit=20):
             history_prompts.extend(await process_message(past_message))
 
-        colt_current_session_chat_cache.extend(reversed(history_prompts))
+        current_session_chat_cache.extend(reversed(history_prompts))
         logger.debug("Session Cache Created")
         return
 
     # Incremental update (no assistant prompt for user messages here)
     new_prompts = await process_message(message)
-    colt_current_session_chat_cache.extend(new_prompts)
+    current_session_chat_cache.extend(new_prompts)
 

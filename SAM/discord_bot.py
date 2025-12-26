@@ -56,7 +56,6 @@ class MyBot(commands.Bot):
         cogs = [
             "discord_functions.cogs.bot_commands",
             "discord_functions.cogs.slash_commands.delete",
-            "discord_functions.cogs.slash_commands.doom",
             "discord_functions.cogs.slash_commands.neuralize",
             "discord_functions.cogs.slash_commands.parrot",
             "discord_functions.cogs.slash_commands.search",
@@ -72,7 +71,7 @@ class MyBot(commands.Bot):
         await self.tree.sync(guild=guild)  # sync them instantly
 
 
-command_prefixes = ["S! "]
+command_prefixes = ["$s "]
 client = MyBot(
     command_prefix=command_prefixes,
     intents=intents,
@@ -83,7 +82,7 @@ client = MyBot(
 class MyHelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         help_message = f"""
-For Full documentation see: [The Github Repo](<https://github.com/EvanSkiStudios/marcojr>)
+For Full documentation see: [The Github Repo](<https://github.com/EvanSkiStudios/sam_ai_assistant>)
 Commands are issued like so: `{command_prefixes}<command> <argument>`
 ```Here are my commands:
 """
@@ -231,6 +230,8 @@ async def on_message(message):
     message_content = message.clean_content
     username = message.author.name
     user_nickname = message.author.display_name
+
+    await message_history_cache(client, message)
 
     # DMs
     if isinstance(message.channel, discord.DMChannel):
