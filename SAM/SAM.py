@@ -49,81 +49,61 @@ def sam_create():
 
 
 # === Main Entry Point ===
-async def sam_message(message_author_name, message_author_nickname, message_content, image_file=None, message_attachments=None):
-    if image_file is None:
-        llm_response = await sam_converse(message_author_name, message_author_nickname, message_content)
-    else:
-        llm_response = await sam_converse_image(message_author_name, message_author_nickname, message_content, image_file ,message_attachments)
-
+async def sam_message(message_author_name, message_author_nickname, message_content, image_file=None,
+                      message_attachments=None):
+    llm_response = await sam_converse(
+        message_author_name,
+        message_author_nickname,
+        message_content,
+        image_file=image_file,
+        message_attachments=message_attachments
+    )
     cleaned = llm_response.replace("'", "\\'")
     return split_response(cleaned)
 
 
-async def sam_converse(user_name, user_nickname, user_input):
+async def sam_converse(user_name, user_nickname, user_input, image_file=None, message_attachments=None):
     current_session_chat_cache = session_chat_cache()
-
     chat_log = list(current_session_chat_cache)
-
-    print("#########################################")
-    for message in chat_log:
-        print(message)
-    print("#########################################")
-
     chat_history = "".join(chat_log)
 
-    current_prompt = [{"role": "user", "content": chat_history}]
+    full_prompt = [
+        {"role": "system", "content": SAM_personality},
+        {"role": "system", "content": chat_history_system_prompt},
+        {"role": "user", "content": chat_history}
+    ]
 
-    full_prompt = (
-        [
-            {"role": "system", "content": SAM_personality},
-            {"role": "system", "content": chat_history_system_prompt}
-        ] +
-        current_prompt
-    )
+    model_to_use = sam_model_name
+
+    if image_file:
+        model_to_use = sam_vision_model
+        # Go one directory up
+        parent_dir = Path(__file__).resolve().parent
+        path = parent_dir / 'tools/vision/images_temp' / image_file
+
+        full_prompt[-1]["images"] = [path]
+        attachments = message_attachments[0]["attachments"]
+
+        logger.debug(f"Attachments: {attachments}")
+        logger.info(f'Analyzing image ({image_file})...')
 
     response = await asyncio.to_thread(
         chat,
-        model=sam_model_name,
+        model=model_to_use,
         messages=full_prompt,
         options={
-            "num_ctx": 8192,
-            'temperature': 0.5
-        }
+            "num_ctx": 16384,
+            'temperature': 0.6,
+            'think': True
+        },
+        stream=False
     )
 
-    # return the message to main script
+    if image_file:
+        vision_image_cleanup(image_file)
+
+    logger.info(full_prompt)
+    logger.info(response.message.content)
+
+    # return response
     return response.message.content
-
-
-async def sam_converse_image(user_name, user_nickname, user_input, image_file, message_attachments):
-    # Go one directory up
-    parent_dir = Path(__file__).resolve().parent
-    path = parent_dir / 'tools/vision/images_temp' / image_file
-
-    attachments = message_attachments[0]["attachments"]
-
-    # print(attachments)
-    # print(f'Analyzing image ({image_file_name})...')
-    logger.debug(f"Attachments: {attachments}")
-    logger.info(f'Analyzing image ({image_file})...')
-
-    response = await asyncio.to_thread(
-        chat,
-        model=sam_vision_model,
-        messages=(
-            [
-                {"role": "system", "content": SAM_personality},
-                {"role": "user", "content": user_input, 'images': [path]}
-            ]
-        ),
-        options={
-            "num_ctx": 8192
-        }
-    )
-
-    # clean up image
-    vision_image_cleanup(image_file)
-
-    # return the message to main script
-    return response.message.content
-

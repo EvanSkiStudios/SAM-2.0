@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from types import SimpleNamespace
 
 from discord_functions.discord_bot_users_manager import handle_bot_message
-from discord_functions.discord_message_helpers import should_ignore_message, message_history_cache
+from discord_functions.discord_message_helpers import should_ignore_message, message_history_cache, CachedBotMessage
 from discord_functions.emoji_reactions import react_to_messages
 from tools.determine_request import classify_request
 from tools.elevenlabs_voice import text_to_speech
@@ -134,15 +134,6 @@ async def send_tts(interaction_or_message, text, reply_target=None):
         else:
             await interaction_or_message.channel.send(file=discord.File(tts_file))
     os.remove(tts_file)
-
-
-class CachedBotMessage:
-    def __init__(self, bot_user, content):
-        self.author = bot_user          # The bot user
-        self.content = content          # Original content
-        self.clean_content = content    # Used in process_message
-        self.type = discord.MessageType.default  # Default type so process_message works
-        self.reference = None           # No reply reference
 
 
 async def llm_chat(message, username: str, user_nickname: str, message_content: str, message_attachments=None):

@@ -48,6 +48,15 @@ def should_ignore_message(client, message):
     return False
 
 
+class CachedBotMessage:
+    def __init__(self, bot_user, content):
+        self.author = bot_user          # The bot user
+        self.content = content          # Original content
+        self.clean_content = content    # Used in process_message
+        self.type = discord.MessageType.default  # Default type so process_message works
+        self.reference = None           # No reply reference
+
+
 # used for conversations
 current_session_chat_cache = deque(maxlen=40)
 current_turn_number = 0
@@ -75,7 +84,7 @@ def assign_turn_numbers(prompts):
     numbered = []
     for p in prompts:
         current_turn_number += 1
-        numbered.append(f'\n[turn: {current_turn_number}] {p}')
+        numbered.append(f'[turn: {current_turn_number}] {p}')
     return numbered
 
 
@@ -87,7 +96,7 @@ def renumber_turns():
 
     for entry in current_session_chat_cache:
         current_turn_number += 1
-        renumbered.append(f'\n[turn: {current_turn_number}] {entry}')
+        renumbered.append(f'[turn: {current_turn_number}] {entry}')
 
     current_session_chat_cache.clear()
     current_session_chat_cache.extend(renumbered)
