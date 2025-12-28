@@ -95,8 +95,7 @@ def renumber_turns():
     renumbered = deque(maxlen=current_session_chat_cache.maxlen)
 
     for entry in current_session_chat_cache:
-        current_turn_number += 1
-        renumbered.append(f'[turn: {current_turn_number}] {entry}')
+        renumbered.append(entry)
 
     current_session_chat_cache.clear()
     current_session_chat_cache.extend(renumbered)
@@ -115,7 +114,7 @@ async def message_history_cache(client, message):
             return f'{author} ({nick}): "{content}"'
 
     def build_assistant_prompt(content=""):
-        return f'SAM: {content}'
+        return f'{content}'
 
     async def process_message(msg):
         """Process a single Discord message into prompts."""
@@ -165,11 +164,11 @@ async def message_history_cache(client, message):
         async for past_message in channel.history(limit=20):
             history_prompts.extend(await process_message(past_message))
 
-        current_session_chat_cache.extend(assign_turn_numbers(reversed(history_prompts)))
+        current_session_chat_cache.extend(reversed(history_prompts))
         logger.debug("Session Cache Created")
         return
 
     # Incremental update (no assistant prompt for user messages here)
     new_prompts = await process_message(message)
-    current_session_chat_cache.extend(assign_turn_numbers(new_prompts))
+    current_session_chat_cache.extend(new_prompts)
 

@@ -15,3 +15,4 @@ SAM/memories/__things_you_know.json
 __pycache__/
 *.pyc
 .env
+*.pyc
