@@ -1,3 +1,4 @@
+import asyncio
 import os
 from collections import deque
 
@@ -101,74 +102,80 @@ def renumber_turns():
     current_session_chat_cache.extend(renumbered)
 
 
+# Create a lock
+lock = asyncio.Lock()
+
+
 async def message_history_cache(client, message):
-    global current_session_chat_cache
+    # Acquire the lock
+    async with lock:
+        global current_session_chat_cache
 
-    def build_user_prompt(author, nick, content, reply_to=None):
-        if reply_to == client.user.name:
-            reply_to = None
+        def build_user_prompt(author, nick, content, reply_to=None):
+            if reply_to == client.user.name:
+                reply_to = None
 
-        if reply_to:
-            return f'{author} ({nick}): (Replying to: {reply_to}) "{content}"'
-        else:
-            return f'{author} ({nick}): "{content}"'
+            if reply_to:
+                return f'{author} ({nick}): (Replying to: {reply_to}) "{content}"'
+            else:
+                return f'{author} ({nick}): "{content}"'
 
-    def build_assistant_prompt(content=""):
-        return f'{content}'
+        def build_assistant_prompt(content=""):
+            return f'SAM: {content}'
 
-    async def process_message(msg):
-        """Process a single Discord message into prompts."""
-        # Skip irrelevant messages
-        if msg.type in {discord.MessageType.chat_input_command, discord.MessageType.thread_created}:
-            return []
-        if msg.author in bots_blacklist:
-            return []
-
-        author_name = msg.author.name
-        author_nick = msg.author.display_name
-        content = msg.clean_content
-
-        # Assistant (bot) message
-        if msg.author.id == client.user.id:
-            return [build_assistant_prompt(content)]
-
-        # Reply message
-        if msg.type == discord.MessageType.reply and msg.reference:
-            try:
-                referenced = await msg.channel.fetch_message(msg.reference.message_id)
-            except discord.NotFound:
-                referenced = None  # message was deleted
-            except discord.Forbidden:
-                referenced = None  # missing permissions
-            except discord.HTTPException:
-                referenced = None  # network or other fetch error
-
-            if referenced is None:
+        async def process_message(msg):
+            """Process a single Discord message into prompts."""
+            # Skip irrelevant messages
+            if msg.type in {discord.MessageType.chat_input_command, discord.MessageType.thread_created}:
+                return []
+            if msg.author in bots_blacklist:
                 return []
 
-            prompts = [
-                build_user_prompt(author_name, author_nick, content, referenced.author.name)
-            ]
+            author_name = msg.author.name
+            author_nick = msg.author.display_name
+            content = msg.clean_content
+
+            # Assistant (bot) message
+            if msg.author.id == client.user.id:
+                return [build_assistant_prompt(content)]
+
+            # Reply message
+            if msg.type == discord.MessageType.reply and msg.reference:
+                try:
+                    referenced = await msg.channel.fetch_message(msg.reference.message_id)
+                except discord.NotFound:
+                    referenced = None  # message was deleted
+                except discord.Forbidden:
+                    referenced = None  # missing permissions
+                except discord.HTTPException:
+                    referenced = None  # network or other fetch error
+
+                if referenced is None:
+                    return []
+
+                prompts = [
+                    build_user_prompt(author_name, author_nick, content, referenced.author.name)
+                ]
+                return prompts
+
+            # Regular user message
+            prompts = [build_user_prompt(author_name, author_nick, content)]
             return prompts
 
-        # Regular user message
-        prompts = [build_user_prompt(author_name, author_nick, content)]
-        return prompts
+        # First-time cache build
+        if not current_session_chat_cache:
+            logger.debug("Session Cache Not Found -- Creating")
+            channel = client.get_channel(message.channel.id)
 
-    # First-time cache build
-    if not current_session_chat_cache:
-        logger.debug("Session Cache Not Found -- Creating")
-        channel = client.get_channel(message.channel.id)
+            history_prompts = []
+            async for past_message in channel.history(limit=20):
+                history_prompts.extend(await process_message(past_message))
 
-        history_prompts = []
-        async for past_message in channel.history(limit=20):
-            history_prompts.extend(await process_message(past_message))
+            current_session_chat_cache.extend(reversed(history_prompts))
+            logger.debug("Session Cache Created")
+            return
 
-        current_session_chat_cache.extend(reversed(history_prompts))
-        logger.debug("Session Cache Created")
-        return
-
-    # Incremental update (no assistant prompt for user messages here)
-    new_prompts = await process_message(message)
-    current_session_chat_cache.extend(new_prompts)
+        # Incremental update (no assistant prompt for user messages here)
+        new_prompts = await process_message(message)
+        current_session_chat_cache.extend(new_prompts)
 

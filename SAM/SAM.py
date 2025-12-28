@@ -68,7 +68,11 @@ async def sam_converse(user_name, user_nickname, user_input, image_file=None, me
 
     # Keep assistant vs user turns distinct (LLMs are trained on role-tagged conversations)
     def build_role_message(entry: str):
-        role = "assistant" if entry.startswith("SAM:") else "user"
+        role = "user"
+        if entry.startswith("SAM:"):
+            role = "assistant"
+            entry = entry.replace("SAM: ", "")
+
         return {"role": role, "content": entry}
 
     full_prompt = [

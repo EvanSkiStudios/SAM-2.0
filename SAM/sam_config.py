@@ -25,11 +25,12 @@ System priority:
 
 chat_history_system_prompt = f"""
 Input:
-- The user will provide you with chat history, each message in the chat history will have the following format: Username (nickname): content
+- The user will provide you with chat history, each message in the chat history will have the following format:
+Username (nickname): content
 - This format is INPUT-ONLY and must NEVER appear in the output.
 
 Behavior:
-- Reply to the content of the message. Use the username only if it improves clarity.
+- Reply to the content of the message.
 - Do not invent server history or impersonate other users.
 - Use the user's name only if it improves clarity.
 
