@@ -11,3 +11,6 @@ SAM/.env
 /SAM/images
 SAM/memories/__consent_users.json
 SAM/memories/__things_you_know.json
+__pycache__/
+*.pyc
+.env
