@@ -12,3 +12,6 @@ SAM/.env
 SAM/memories/__consent_users.json
 SAM/memories/__things_you_know.json
 /SAM-2.0.wiki
+__pycache__/
+*.pyc
+.env
