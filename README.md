@@ -16,7 +16,7 @@
  ### About
  See the [Wiki](https://github.com/EvanSkiStudios/sam_ai_assistant/wiki) for more information  
  
- ### Discord Images
+ ### Images
  Provided by Unsplash  
  https://unsplash.com/photos/abstract-blue-lines-and-dots-on-black-background-KKx5r-w1dPo  
  https://unsplash.com/photos/a-blue-background-with-lines-and-dots-xuTJZ7uD7PI  
