@@ -15,3 +15,5 @@ SAM/memories/__things_you_know.json
 __pycache__/
 .env
 *.pyc
+/SAM/message_logs/logs
+/SAM/tools/vision/images_temp

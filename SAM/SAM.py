@@ -58,8 +58,12 @@ async def sam_message(message_author_name, message_author_nickname, message_cont
         image_file=image_file,
         message_attachments=message_attachments
     )
-    cleaned = llm_response.replace("'", "\\'")
-    return split_response(cleaned)
+
+    cleaned = llm_response.content.replace("'", "\\'")
+    return {
+        "content": split_response(cleaned),
+        "message": llm_response
+    }
 
 
 async def sam_converse(user_name, user_nickname, user_input, image_file=None, message_attachments=None):
@@ -100,7 +104,7 @@ async def sam_converse(user_name, user_nickname, user_input, image_file=None, me
         model=model_to_use,
         messages=full_prompt,
         options={
-            "num_ctx": 8192,
+            'num_ctx': 8192,
             'temperature': 0.5,
             'think': True
         },
@@ -110,14 +114,5 @@ async def sam_converse(user_name, user_nickname, user_input, image_file=None, me
     if image_file:
         vision_image_cleanup(image_file)
 
-    # logger.info(response.message.thinking)
-
-    # Log history + assistant's reply
-    logger.info(
-        "\n".join(f'{m["role"]}: {m["content"]}' for m in full_prompt))  # place each message item on its own line
-    logger.info(response.message.content)
-
-    # logger.info(full_prompt)
-
     # return response
-    return response.message.content
+    return response.message

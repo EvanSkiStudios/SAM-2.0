@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from discord_functions.discord_bot_users_manager import handle_bot_message
 from discord_functions.discord_message_helpers import should_ignore_message, message_history_cache, CachedBotMessage
 from discord_functions.emoji_reactions import react_to_messages
+from message_logs.log_message import log_message
 from tools.determine_request import classify_request
 from tools.elevenlabs_voice import text_to_speech
 from tools.vision.gemma_vision import vision_download_image
@@ -180,26 +181,44 @@ async def llm_chat(message, username: str, user_nickname: str, message_content: 
             case _:
                 response = await sam_message(username, user_nickname, message_content)
 
-    if response == -1:
+    # ===========================================
+    # Sending Response to Discord
+    # ===========================================
+    if not response:
         return
 
+    response_content = response["content"]
+
     # Send messages in parts but store the full response
-    full_response = " ".join(response)  # combine all parts into one string
+    full_response = " ".join(response_content)  # combine all parts into one string
 
     # response should have been split in the above function returns
     sent_message = None
-    for i, part in enumerate(response):
+    for i, part in enumerate(response_content):
         if not message.author.bot and i == 0:
             sent_message = await message.reply(part, suppress_embeds=True)
         else:
-            await message.channel.send(part, suppress_embeds=True)
+            if i != 0:
+                await message.channel.send(part, suppress_embeds=True)
+            else:
+                sent_message = await message.channel.send(part, suppress_embeds=True)
 
     if is_tts_message:
-        await send_tts(message, response[0], reply_target=sent_message)
+        await send_tts(message, response_content[0], reply_target=sent_message)
 
     # Add the full response to the cache as a single assistant message
     cached_msg = CachedBotMessage(client.user, full_response)
     await message_history_cache(client, cached_msg)
+
+    # ===========================================
+    # Logging
+    # ===========================================
+    user_message = {
+        "id": message.id,
+        "content": message_content,
+        "name": username
+    }
+    await log_message(sent_message, response["message"].thinking, user_message)
 
 
 def get_message_attachments(message):
