@@ -9,7 +9,7 @@ logger = setup_logger(__name__)
 
 
 def get_timestamp() -> str:
-    return datetime.now().strftime("%m_%d_%H_%M_%S")
+    return datetime.now().strftime("%m-%d__%H_%M_%S")
 
 
 def build_role_message(entry: str) -> dict:
@@ -38,7 +38,7 @@ async def log_message(sent_message, thinking: str, user_message: dict) -> None:
     save_dir = Path(__file__).resolve().parent / "logs"
     save_dir.mkdir(exist_ok=True)
 
-    path = save_dir / f"{get_timestamp()}_{sent_message.id}.md"
+    path = save_dir / f"{get_timestamp()}__{sent_message.id}.md"
 
     chat_log = session_chat_cache()
     chat_history = [build_role_message(entry) for entry in chat_log]

@@ -36,6 +36,10 @@ channels_whitelist = [int(t) for t in CONFIG.THREADS_ALLOW.__dict__.values()]
 
 
 def should_ignore_message(client, message):
+    if not message.content:
+        # ignores empty messages
+        # should manage embeds at one point (message.embeds)
+        return True
     if message.author in bots_blacklist:
         return True
     if message.channel.id not in channels_whitelist:
