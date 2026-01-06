@@ -12,7 +12,7 @@ from utility_scripts.system_logging import setup_logger
 logger = setup_logger(__name__)
 
 tool_model = 'huihui_ai/llama3.2-abliterate'
-chat_model = 'huihui_ai/llama3.2-abliterate'
+chat_model = 'SAM-deepseek-r1'
 
 
 def get_the_weather(city, state):
@@ -25,6 +25,7 @@ available_functions = {
 
 system_prompt = f"""
 {sam_config.SAM_personality}
+
 You will be given the results of a weather_search search.
 Respond with the full results in detail.
 Always try to provide a neutral and informative response.
@@ -87,7 +88,11 @@ async def weather_search(message):
     """)
     logger.info(debug_print)
 
-    return split_response(output)
+    cleaned = output.replace("'", "\\'")
+    return {
+        "content": split_response(cleaned),
+        "message": final_response
+    }
 
 
 async def main():

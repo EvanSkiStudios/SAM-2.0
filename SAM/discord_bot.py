@@ -219,7 +219,15 @@ async def llm_chat(message, username: str, user_nickname: str, message_content: 
         "content": message_content,
         "name": username
     }
-    await log_message(sent_message, response["message"].thinking, user_message)
+
+    msg = response["message"]
+
+    if hasattr(msg, "thinking"):
+        thinking = msg.thinking
+    else:
+        thinking = "No Thinking"
+
+    await log_message(sent_message, thinking, user_message)
 
 
 def get_message_attachments(message):

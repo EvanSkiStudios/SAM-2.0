@@ -11,6 +11,7 @@ __pycache__/
 *.pyc
 /SAM/__pycache__/
 /SAM/memories/__pycache__/
+/SAM/tools/weather_search/__pycache__
 
 # ----------------------
 # IDE / editor files
