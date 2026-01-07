@@ -41,6 +41,3 @@ __pycache__/
 # Documentation / wiki
 # ----------------------
 /SAM-2.0.wiki
-*.pyc
-/SAM/tools/weather_search/__pycache__
-SAM/tools/weather_search/__pycache__/weather_tool.cpython-313.pyc
