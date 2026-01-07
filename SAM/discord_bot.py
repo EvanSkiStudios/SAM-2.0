@@ -155,7 +155,10 @@ async def llm_chat(message, username: str, user_nickname: str, message_content: 
 
     async with message.channel.typing():
         if message_attachments:
-            request_classification = "image"
+            media_type, media_subtype = message_attachments[0]["type"].split("/", 1)
+
+            if media_type == "image" and media_subtype in ("png", "jpeg", "webp"):
+                request_classification = "image"
         else:
             request_classification = classify_request(message_content)
 
@@ -197,12 +200,12 @@ async def llm_chat(message, username: str, user_nickname: str, message_content: 
     sent_message = None
     for i, part in enumerate(response_content):
         if not message.author.bot and i == 0:
-            sent_message = await message.reply(part, suppress_embeds=True)
+            sent_message = await message.reply(part, suppress_embeds=True, mention_author=False)
         else:
             if i != 0:
                 await message.channel.send(part, suppress_embeds=True)
             else:
-                sent_message = await message.channel.send(part, suppress_embeds=True)
+                sent_message = await message.channel.send(part, suppress_embeds=True, mention_author=False)
 
     if is_tts_message:
         await send_tts(message, response_content[0], reply_target=sent_message)
@@ -237,13 +240,14 @@ def get_message_attachments(message):
         message_attachments = []
         for media in message.attachments:
             content_type = str(media.content_type).lower()
-            attachment_url = media.url if content_type in ("image/png", "image/jpeg", "image/webp") else None
+
             # Unhandled formats will give  (status code: 500) from the bot
             attachments = message.attachments
             # currently only looks at one image if there are multiple
             message_attachments.append({
+                "type": content_type,
                 "attachments": attachments,
-                "attachment_url": attachment_url
+                "attachment_url": media.url
             })
     return message_attachments
 

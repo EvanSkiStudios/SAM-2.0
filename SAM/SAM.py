@@ -52,7 +52,13 @@ def sam_create():
 
 # === Main Entry Point ===
 async def sam_message(message_author_name, message_author_nickname, message_content, image_file=None,
-                      message_attachments=None):
+                      message_attachments=None) -> dict[str, any]:
+    """
+    :return: dict [
+    message content: string,
+    message object ]
+    """
+
     llm_response = await sam_converse(
         message_author_name,
         message_author_nickname,

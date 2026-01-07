@@ -95,6 +95,9 @@ async def weather_search(message):
     }
 
 
+# ===============
+# TESTING
+# ===============
 async def main():
     query = "whats the weather_search in north dekota?"
     response = await weather_search(query)
